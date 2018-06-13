@@ -4,6 +4,7 @@ namespace App;
 
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\User;
 
 class User extends Authenticatable
 {
@@ -69,10 +70,10 @@ class User extends Authenticatable
     // confirming if already following
     $exist = $this->is_following($userId);
     // confirming that it is not you
-    $its_me = $this->id == $userId;
+    // $its_me = $this->id == $userId;
 
 
-    if ($exist && !$its_me) {
+    if ($exist || $its_me) {
         // stop following if following
         $this->followings()->detach($userId);
         return true;
@@ -94,4 +95,48 @@ public function feed_microposts()
         $follow_user_ids[] = $this->id;
         return Micropost::whereIn('user_id', $follow_user_ids);
     }
+
+
+  public function favorites()
+    {
+        return $this->belongsToMany(Micropost::class, 'favorites', 'user_id', 'micropost_id')->withTimestamps();
+    }
+
+
+  public function favorite($micropostId)
+{
+    // confirm if already following
+    $exist = $this->is_favoriting($micropostId);
+  
+
+    if ($exist) {
+        return false;
+    } else {
+        $this->favorites()->attach($micropostId);
+        return true;
+    }
+}
+
+public function unfavorite($micropostId)
+{
+    // confirming if already following
+    $exist = $this->is_favoriting($micropostId);
+    // confirming that it is not you
+    // $its_me = $this->id == $userId;
+
+
+    if ($exist) {
+        // stop following if following
+        $this->favorites()->detach($micropostId);
+        return true;
+    } else {
+        // do nothing if not following
+        return false;
+    }
+}
+
+
+public function is_favoriting($micropostId) {
+    return $this->favorites()->where('micropost_id', $micropostId)->exists();
+}
 }
